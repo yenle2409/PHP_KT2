@@ -17,7 +17,8 @@ function compressImage($source, $destination, $quality = 80) {
         case 'image/png':
             $image = imagecreatefrompng($source);
             // Giữ nguyên PNG không convert sang JPEG
-            imagepng($image, $destination);
+            $pngQuality = 9 - floor($quality / 10);
+            imagepng($image, $destination, $pngQuality);
             break;
         case 'image/gif':
             $image = imagecreatefromgif($source);

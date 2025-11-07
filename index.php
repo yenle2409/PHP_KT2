@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     $quality = (int)($_POST["quality"] ?? 80);
 
     $allowedTypes = ["image/jpeg", "image/png", "image/gif"];
-    
+ 
     if ($file["error"] !== UPLOAD_ERR_OK) {
         $uploadMessage = "⚠️ Lỗi upload file!";
     } elseif ($file["size"] > 2 * 1024 * 1024) {
@@ -53,8 +53,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
             // Có GD, xử lý resize và compress
             include 'compress.php';
             include 'resize.php';
-            
-            if (resizeImage($tempPath, $targetPath, 800, 800)) {
+            $crop = [
+                'x' => (int)($_POST['crop_x'] ?? 0),
+                'y' => (int)($_POST['crop_y'] ?? 0),
+                'w' => (int)($_POST['crop_w'] ?? 0),
+                'h' => (int)($_POST['crop_h'] ?? 0)
+            ];
+            if (resizeImage($tempPath, $targetPath, 800, 800, $crop)) {
                 compressImage($targetPath, $targetPath, $quality);
                 
                 // Lưu vào database
@@ -83,6 +88,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     <title>FashionGallery — Chia Sẻ Phong Cách Thời Trang</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 </head>
 <body>
     <header class="site-header">
@@ -122,13 +129,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
         </div>
 
         <!-- IMAGE PREVIEW -->
-        <div class="image-preview" id="imagePreview">
-            <div class="preview-title">
-                <i class="fas fa-eye"></i> Xem trước
+        <div id="previewContainer" class="text-center mt-4" style="display: none;">
+            <h5 class="mb-3">Xem trước ảnh</h5>
+
+            <!-- Vùng crop -->
+            <div class="crop-container mx-auto border rounded shadow-sm p-3 bg-light" style="max-width: 420px;">
+                <img id="previewImage" style="max-width: 100%; border-radius: 10px;">
             </div>
-            <img id="previewImage" src="" alt="Preview">
+
+            <!-- Nút thao tác -->
+            <div class="mt-4 d-flex justify-content-center gap-3">
+                <button id="cropButton" class="btn btn-primary px-4">
+                    Cắt ảnh
+                </button>
+                <button id="cancelButton" class="btn btn-secondary px-4" style="display: none;">
+                    Hủy
+                </button>
+            </div>
         </div>
 
+        <!-- Khu vực hiển thị sau khi cắt -->
+        <div id="croppedPreviewContainer" class="container text-center mt-4" style="display: none;">
+            <h5 class="mb-3">Xem trước ảnh</h5>
+            <img id="croppedPreview" style="max-width: 300px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.15);">
+        </div>
         <!-- IMPROVED FORM GROUPS -->
         <div class="form-group">
             <label for="desc">
@@ -332,6 +356,74 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+let cropper;
+const imageInput = document.getElementById('fileInput');
+const previewContainer = document.getElementById('previewContainer');
+const previewImage = document.getElementById('previewImage');
+const cropButton = document.getElementById('cropButton');
+const cancelButton = document.getElementById('cancelButton');
+const croppedPreviewContainer = document.getElementById('croppedPreviewContainer');
+const croppedPreview = document.getElementById('croppedPreview');
+
+// Khi chọn file ảnh
+imageInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        alert("Vui lòng chọn file ảnh hợp lệ!");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        previewImage.src = reader.result;
+        previewContainer.style.display = 'block';
+        croppedPreviewContainer.style.display = 'none';
+
+        // Hủy cropper cũ nếu có
+        if (cropper) cropper.destroy();
+
+        // Cho phép cắt ảnh tự do (aspectRatio: NaN)
+        cropper = new Cropper(previewImage, {
+            aspectRatio: NaN,
+            viewMode: 1,
+            autoCropArea: 0.9,
+            background: false,
+            movable: true,
+            zoomable: true,
+            rotatable: false,
+            scalable: false,
+        });
+    };
+    reader.readAsDataURL(file);
+});
+
+// Khi bấm "Cắt ảnh"
+cropButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (!cropper) return;
+
+    // Không giới hạn kích thước crop (dựa theo vùng người dùng chọn)
+    const canvas = cropper.getCroppedCanvas({
+        maxWidth: 1000,
+        maxHeight: 1000,
+    });
+
+    // Hiển thị ảnh sau khi cắt
+    croppedPreview.src = canvas.toDataURL("image/jpeg", 0.9);
+    croppedPreviewContainer.style.display = 'block';
+    previewContainer.style.display = 'none'; // Ẩn vùng preview ban đầu
+
+    // Lưu dữ liệu crop (để gửi PHP xử lý)
+    const cropData = cropper.getData();
+    document.querySelector('form').insertAdjacentHTML('beforeend', `
+        <input type="hidden" name="crop_x" value="${Math.round(cropData.x)}">
+        <input type="hidden" name="crop_y" value="${Math.round(cropData.y)}">
+        <input type="hidden" name="crop_w" value="${Math.round(cropData.width)}">
+        <input type="hidden" name="crop_h" value="${Math.round(cropData.height)}">
+    `);
+});
+
 </script>
 </body>
 </html>
