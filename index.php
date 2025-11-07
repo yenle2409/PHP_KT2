@@ -101,55 +101,86 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
         <p>Chia sẻ những khoảnh khắc thời trang của bạn với cộng đồng. Phong cách đường phố, lookbook, cảm hứng phối đồ và nhiều hơn nữa.</p>
     </section>
 
-    <section id="upload" class="upload-section">
-        <h2><i class="fas fa-cloud-upload-alt"></i> Tải Lên Phong Cách Của Bạn</h2>
-        
-        <?php if ($uploadMessage): ?>
-            <div class="message <?= strpos($uploadMessage, '✅') !== false ? 'success' : 'error' ?>">
-                <?= htmlspecialchars($uploadMessage) ?>
-            </div>
-        <?php endif; ?>
+<section id="upload" class="upload-section">
+    <h2><i class="fas fa-cloud-upload-alt"></i> Tải Lên Phong Cách Của Bạn</h2>
+    
+    <?php if ($uploadMessage): ?>
+        <div class="message <?= strpos($uploadMessage, '✅') !== false ? 'success' : 'error' ?>">
+            <?= htmlspecialchars($uploadMessage) ?>
+        </div>
+    <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data" class="upload-form">
-            <div class="file-input-wrapper">
-                <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif" required id="fileInput">
-                <label for="fileInput" class="file-input-label">
-                 
-        </br> <small>Tối đa 2MB • Định dạng JPG, PNG, GIF</small>
-                </label>
-            </div>
+    <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+        <!-- IMPROVED FILE UPLOAD -->
+        <div class="file-input-wrapper" id="fileDropArea">
+            <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif" required id="fileInput">
+            <label for="fileInput" class="file-input-label">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Chọn ảnh thời trang của bạn</span>
+                <small>Kéo thả file vào đây hoặc click để chọn</small>
+            </label>
+        </div>
 
-            <div class="form-group">
-                <label for="desc">Mô Tả Phong Cách</label>
-                <input type="text" name="desc" id="desc" placeholder="Ví dụ: Phong cách denim mùa hè với giày sneaker cổ điển" value="<?= htmlspecialchars($_POST['desc'] ?? '') ?>">
+        <!-- IMAGE PREVIEW -->
+        <div class="image-preview" id="imagePreview">
+            <div class="preview-title">
+                <i class="fas fa-eye"></i> Xem trước
             </div>
+            <img id="previewImage" src="" alt="Preview">
+        </div>
 
-            <div class="form-group">
-                <label for="category">Danh Mục Thời Trang</label>
-                <select name="category" id="category">
-                    <option value="Đường phố" <?= ($_POST['category'] ?? '') === 'Đường phố' ? 'selected' : '' ?>>Phong Cách Đường Phố</option>
-                    <option value="Công sở" <?= ($_POST['category'] ?? '') === 'Công sở' ? 'selected' : '' ?>>Thời Trang Công Sở</option>
-                    <option value="Cổ điển" <?= ($_POST['category'] ?? '') === 'Cổ điển' ? 'selected' : '' ?>>Phong Cách Cổ Điển</option>
-                    <option value="Thường ngày" <?= ($_POST['category'] ?? '') === 'Thường ngày' ? 'selected' : '' ?>>Thời Trang Thường Ngày</option>
-                    <option value="Cao cấp" <?= ($_POST['category'] ?? '') === 'Cao cấp' ? 'selected' : '' ?>>Thời Trang Cao Cấp</option>
-                    <option value="Tối giản" <?= ($_POST['category'] ?? '') === 'Tối giản' ? 'selected' : '' ?>>Phong Cách Tối Giản</option>
-                </select>
+        <!-- IMPROVED FORM GROUPS -->
+        <div class="form-group">
+            <label for="desc">
+                <i class="fas fa-pen"></i> Mô Tả Phong Cách
+            </label>
+            <input type="text" name="desc" id="desc" 
+                   placeholder="Ví dụ: Phong cách denim mùa hè với giày sneaker cổ điển" 
+                   value="<?= htmlspecialchars($_POST['desc'] ?? '') ?>">
+        </div>
+
+        <div class="form-group">
+            <label for="category">
+                <i class="fas fa-tag"></i> Danh Mục Thời Trang
+            </label>
+            <select name="category" id="category">
+                <option value="Đường phố" <?= ($_POST['category'] ?? '') === 'Đường phố' ? 'selected' : '' ?>>👕 Phong Cách Đường Phố</option>
+                <option value="Công sở" <?= ($_POST['category'] ?? '') === 'Công sở' ? 'selected' : '' ?>>💼 Thời Trang Công Sở</option>
+                <option value="Cổ điển" <?= ($_POST['category'] ?? '') === 'Cổ điển' ? 'selected' : '' ?>>🎩 Phong Cách Cổ Điển</option>
+                <option value="Thường ngày" <?= ($_POST['category'] ?? '') === 'Thường ngày' ? 'selected' : '' ?>>👚 Thời Trang Thường Ngày</option>
+                <option value="Cao cấp" <?= ($_POST['category'] ?? '') === 'Cao cấp' ? 'selected' : '' ?>>✨ Thời Trang Cao Cấp</option>
+                <option value="Tối giản" <?= ($_POST['category'] ?? '') === 'Tối giản' ? 'selected' : '' ?>>⚫ Phong Cách Tối Giản</option>
+            </select>
+        </div>
+
+        <!-- IMPROVED QUALITY SLIDER -->
+        <div class="form-group">
+            <label for="quality">
+                <i class="fas fa-cog"></i> Chất Lượng Ảnh
+                <small style="font-weight: normal; color: var(--muted);">(50-100)</small>
+            </label>
+            <div class="quality-slider-container">
+                <input type="range" name="quality" id="quality" min="50" max="100" 
+                       value="<?= htmlspecialchars($_POST['quality'] ?? '80') ?>" 
+                       class="quality-slider"
+                       oninput="updateQualityValue(this.value)">
+                <output id="qualityValue" class="quality-value">
+                    <?= htmlspecialchars($_POST['quality'] ?? '80') ?>%
+                </output>
             </div>
-
-            <div class="form-group">
-                <label for="quality">Chất Lượng Ảnh (50-100)</label>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <input type="range" name="quality" id="quality" min="50" max="100" value="<?= htmlspecialchars($_POST['quality'] ?? '80') ?>" 
-                           oninput="document.getElementById('qualityValue').textContent = this.value">
-                    <output id="qualityValue" style="background: var(--accent); color: white; padding: 0.25rem 0.5rem; border-radius: 5px; min-width: 40px; text-align: center;"><?= htmlspecialchars($_POST['quality'] ?? '80') ?></output>%
-                </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;">
+                <span>Kích thước nhỏ</span>
+                <span>Chất lượng tốt</span>
             </div>
+        </div>
 
-            <button type="submit" class="btn-primary">
-                <i class="fas fa-upload"></i> Tải Lên
-            </button>
-        </form>
-    </section>
+        <!-- IMPROVED SUBMIT BUTTON -->
+        <button type="submit" class="btn-primary" id="submitBtn">
+            <i class="fas fa-upload"></i> 
+            <span id="btnText">Tải Lên Ngay</span>
+        </button>
+    </form>
+</section>
 
     <main id="gallery" class="gallery">
         <?php if (!empty($images)): ?>
@@ -189,48 +220,118 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     </footer>
 
     <script>
-    // Hiển thị tên file khi chọn
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const label = this.nextElementSibling;
-        const fileName = this.files[0]?.name || 'Chọn ảnh thời trang của bạn';
-        label.querySelector('span').textContent = fileName;
-        
-        // Thêm hiệu ứng khi có file được chọn
-        if (this.files.length > 0) {
-            label.style.borderColor = 'var(--accent)';
-            label.style.background = 'rgba(255, 51, 102, 0.1)';
-        }
+// CẢI THIỆN UPLOAD EXPERIENCE
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('fileInput');
+    const fileDropArea = document.getElementById('fileDropArea');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    
+    // Hiển thị chất lượng ban đầu
+    updateQualityValue(document.getElementById('quality').value);
+    
+    // DRAG & DROP FUNCTIONALITY
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, preventDefaults, false);
     });
-
-    // Cuộn mượt cho navigation
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        fileDropArea.classList.add('dragover');
+    }
+    
+    function unhighlight() {
+        fileDropArea.classList.remove('dragover');
+    }
+    
+    // Handle dropped files
+    fileDropArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        handleFiles(files);
+    }
+    
+    // Handle file selection
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+    
+    function handleFiles(files) {
+        if (files.length > 0) {
+            const file = files[0];
+            const fileName = file.name;
+            
+            // Update label
+            fileDropArea.querySelector('span').textContent = fileName;
+            fileDropArea.style.borderColor = 'var(--accent)';
+            fileDropArea.style.background = 'rgba(231, 185, 176, 0.1)';
+            
+            // Show preview
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
             }
-        });
+        }
+    }
+    
+    // Form submission
+    uploadForm.addEventListener('submit', function() {
+        btnText.textContent = 'Đang tải lên...';
+        submitBtn.disabled = true;
+        submitBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
     });
+});
 
-    // Hiệu ứng loading khi submit form
-    document.querySelector('form').addEventListener('submit', function() {
-        const btn = this.querySelector('button[type="submit"]');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải lên...';
-        btn.disabled = true;
-    });
+// Update quality value display
+function updateQualityValue(value) {
+    const qualityValue = document.getElementById('qualityValue');
+    qualityValue.textContent = value + '%';
+    
+    // Change color based on value
+    if (value >= 90) {
+        qualityValue.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
+    } else if (value >= 70) {
+        qualityValue.style.background = 'linear-gradient(135deg, #FF9800, #F57C00)';
+    } else {
+        qualityValue.style.background = 'var(--gradient)';
+    }
+}
 
-    // Hiển thị chất lượng ảnh khi trang load
-    document.addEventListener('DOMContentLoaded', function() {
-        const qualitySlider = document.getElementById('quality');
-        const qualityValue = document.getElementById('qualityValue');
-        if (qualitySlider && qualityValue) {
-            qualityValue.textContent = qualitySlider.value;
+// Smooth scroll for navigation
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
         }
     });
-    </script>
+});
+</script>
 </body>
 </html>
