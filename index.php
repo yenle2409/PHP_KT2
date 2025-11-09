@@ -92,21 +92,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 </head>
 <body>
+    <!-- ===== HEADER SECTION ===== -->
     <header class="site-header">
         <div class="header-content">
             <div class="logo">FashionGallery</div>
             <nav class="nav-links">
                 <a href="#gallery">Thư Viện</a>
                 <a href="#upload">Tải Lên</a>
+                <a href="#trending">Xu Hướng</a>
             </nav>
         </div>
     </header>
 
+    <!-- ===== HERO SECTION ===== -->
     <section class="hero">
         <h1>Thể Hiện Phong Cách Của Bạn</h1>
         <p>Chia sẻ những khoảnh khắc thời trang của bạn với cộng đồng. Phong cách đường phố, lookbook, cảm hứng phối đồ và nhiều hơn nữa.</p>
     </section>
 
+    <!-- ===== UPLOAD SECTION ===== -->
     <section id="upload" class="upload-section">
         <h2><i class="fas fa-cloud-upload-alt"></i> Tải Lên Phong Cách Của Bạn</h2>
         
@@ -117,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
-            <!-- IMPROVED FILE UPLOAD -->
+            <!-- FILE UPLOAD AREA -->
             <div class="file-input-wrapper" id="fileDropArea">
                 <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif" required id="fileInput">
                 <label for="fileInput" class="file-input-label">
@@ -127,46 +131,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
                 </label>
             </div>
 
-            <!-- IMAGE PREVIEW -->
+            <!-- IMAGE PREVIEW & CROP AREA -->
             <div id="previewContainer" class="text-center mt-4" style="display: none;">
                 <h5 class="mb-3">Xem trước ảnh</h5>
-
-                <!-- Vùng crop -->
                 <div class="crop-container mx-auto border rounded shadow-sm p-3 bg-light" style="max-width: 420px;">
                     <img id="previewImage" style="max-width: 100%; border-radius: 10px;">
                 </div>
-
-                <!-- Nút thao tác -->
                 <div class="mt-4 d-flex justify-content-center gap-3">
-                    <button id="cropButton" class="btn btn-primary px-4">
-                        Cắt ảnh
-                    </button>
-                    <button id="cancelButton" class="btn btn-secondary px-4" style="display: none;">
-                        Hủy
-                    </button>
+                    <button id="cropButton" class="btn btn-primary px-4">Cắt ảnh</button>
+                    <button id="cancelButton" class="btn btn-secondary px-4" style="display: none;">Hủy</button>
                 </div>
             </div>
 
-            <!-- Khu vực hiển thị sau khi cắt -->
+            <!-- CROPPED PREVIEW -->
             <div id="croppedPreviewContainer" class="container text-center mt-4" style="display: none;">
                 <h5 class="mb-3">Xem trước ảnh</h5>
                 <img id="croppedPreview" style="max-width: 300px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.15);">
             </div>
 
-            <!-- IMPROVED FORM GROUPS -->
+            <!-- FORM FIELDS -->
             <div class="form-group">
-                <label for="desc">
-                    <i class="fas fa-pen"></i> Mô Tả Phong Cách
-                </label>
+                <label for="desc"><i class="fas fa-pen"></i> Mô Tả Phong Cách</label>
                 <input type="text" name="desc" id="desc" 
                        placeholder="Ví dụ: Phong cách denim mùa hè với giày sneaker cổ điển" 
                        value="<?= htmlspecialchars($_POST['desc'] ?? '') ?>">
             </div>
 
             <div class="form-group">
-                <label for="category">
-                    <i class="fas fa-tag"></i> Danh Mục Thời Trang
-                </label>
+                <label for="category"><i class="fas fa-tag"></i> Danh Mục Thời Trang</label>
                 <select name="category" id="category">
                     <option value="Đường phố" <?= ($_POST['category'] ?? '') === 'Đường phố' ? 'selected' : '' ?>>👕 Phong Cách Đường Phố</option>
                     <option value="Công sở" <?= ($_POST['category'] ?? '') === 'Công sở' ? 'selected' : '' ?>>💼 Thời Trang Công Sở</option>
@@ -177,12 +169,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
                 </select>
             </div>
 
-            <!-- IMPROVED QUALITY SLIDER -->
             <div class="form-group">
-                <label for="quality">
-                    <i class="fas fa-cog"></i> Chất Lượng Ảnh
-                    <small style="font-weight: normal; color: var(--muted);">(50-100)</small>
-                </label>
+                <label for="quality"><i class="fas fa-cog"></i> Chất Lượng Ảnh</label>
                 <div class="quality-slider-container">
                     <input type="range" name="quality" id="quality" min="50" max="100" 
                            value="<?= htmlspecialchars($_POST['quality'] ?? '80') ?>" 
@@ -192,13 +180,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
                         <?= htmlspecialchars($_POST['quality'] ?? '80') ?>%
                     </output>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;">
+                <div class="quality-labels">
                     <span>Kích thước nhỏ</span>
                     <span>Chất lượng tốt</span>
                 </div>
             </div>
 
-            <!-- IMPROVED SUBMIT BUTTON -->
             <button type="submit" class="btn-primary" id="submitBtn">
                 <i class="fas fa-upload"></i> 
                 <span id="btnText">Tải Lên Ngay</span>
@@ -206,6 +193,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
         </form>
     </section>
 
+    <!-- ===== GALLERY SECTION ===== -->
     <main id="gallery" class="gallery">
         <?php if (!empty($images)): ?>
             <?php foreach ($images as $image): ?>
@@ -227,31 +215,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: var(--muted);">
-                <i class="fas fa-camera" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                <h3 style="margin-bottom: 0.5rem;">Chưa có ảnh nào</h3>
+            <div class="empty-gallery">
+                <i class="fas fa-camera"></i>
+                <h3>Chưa có ảnh nào</h3>
                 <p>Hãy là người đầu tiên chia sẻ phong cách của bạn!</p>
             </div>
         <?php endif; ?>
     </main>
 
+    <!-- ===== FOOTER SECTION ===== -->
     <footer class="site-footer">
-        <p> <b>FashionGallery</b> — Nơi phong cách gặp gỡ cộng đồng</p>
-        <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.7;">
-            <i class="fas fa-heart" style="color: var(--accent);"></i> 
-            Được tạo ra với niềm đam mê thời trang
+        <p><b>FashionGallery</b> — Nơi phong cách gặp gỡ cộng đồng</p>
+        <p class="footer-heart">
+            <i class="fas fa-heart"></i> Được tạo ra với niềm đam mê thời trang
         </p>
     </footer>
 
-    <!-- PREMIUM ALERT MODAL -->
+    <!-- ===== ALERT MODAL ===== -->
     <div class="alert-modal" id="alertModal">
         <div class="modal-content">
-            <button class="modal-close" id="modalClose">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="modal-icon error" id="modalIcon">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
+            <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
+            <div class="modal-icon error" id="modalIcon"><i class="fas fa-exclamation-triangle"></i></div>
             <h3 class="modal-title" id="modalTitle">Thông báo</h3>
             <p class="modal-message" id="modalMessage">Nội dung thông báo</p>
             <button class="modal-button" id="modalButton">OK</button>
@@ -259,7 +243,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     </div>
 
     <script>
-// 🎨 PREMIUM ALERT MODAL FUNCTIONS
+// ===== GLOBAL VARIABLES =====
+let cropper;
+const fileInput = document.getElementById('fileInput');
+const fileDropArea = document.getElementById('fileDropArea');
+const previewContainer = document.getElementById('previewContainer');
+const previewImage = document.getElementById('previewImage');
+const cropButton = document.getElementById('cropButton');
+const croppedPreviewContainer = document.getElementById('croppedPreviewContainer');
+const croppedPreview = document.getElementById('croppedPreview');
+const uploadForm = document.getElementById('uploadForm');
+const submitBtn = document.getElementById('submitBtn');
+const btnText = document.getElementById('btnText');
+
+// ===== MODAL FUNCTIONS =====
 function showAlert(title, message, type = 'error') {
     const modal = document.getElementById('alertModal');
     const modalIcon = document.getElementById('modalIcon');
@@ -267,68 +264,39 @@ function showAlert(title, message, type = 'error') {
     const modalMessage = document.getElementById('modalMessage');
     const modalButton = document.getElementById('modalButton');
     
-    // Set icon based on type
-    if (type === 'error') {
-        modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-        modalIcon.className = 'modal-icon error';
-    } else {
-        modalIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        modalIcon.className = 'modal-icon success';
-    }
-    
+    modalIcon.innerHTML = type === 'error' ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-check-circle"></i>';
+    modalIcon.className = `modal-icon ${type}`;
     modalTitle.textContent = title;
     modalMessage.textContent = message;
     modal.classList.add('show');
     
-    // Close modal events
     const closeModal = () => modal.classList.remove('show');
-    
     modalButton.onclick = closeModal;
     document.getElementById('modalClose').onclick = closeModal;
-    
-    // Close on background click
-    modal.onclick = function(e) {
-        if (e.target === modal) closeModal();
-    }
-    
-    // Close on Escape key
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
     document.addEventListener('keydown', function closeOnEscape(e) {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', closeOnEscape);
-        }
+        if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', closeOnEscape); }
     });
 }
 
-// 🎯 VALIDATE ĐỊNH DẠNG ẢNH VỚI MODAL ĐẸP
+// ===== VALIDATION FUNCTIONS =====
 function validateImageFormat(file) {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    const maxSize = 2 * 1024 * 1024;
     
-    // Kiểm tra định dạng
     if (!allowedTypes.includes(file.type)) {
-        showAlert(
-            '❌ Định Dạng Không Hợp Lệ', 
-            'Chỉ chấp nhận các định dạng ảnh:\n JPG/JPEG, PNG, GIF. \n Vui lòng chọn file ảnh khác!',
-            'error'
-        );
+        showAlert('❌ Định Dạng Không Hợp Lệ', 'Chỉ chấp nhận các định dạng ảnh:\n• JPG/JPEG\n• PNG\n• GIF\n\nVui lòng chọn file ảnh khác!', 'error');
         return false;
     }
     
-    // Kiểm tra kích thước
     if (file.size > maxSize) {
-        showAlert(
-            '📏 Kích Thước Quá Lớn', 
-            `File ảnh của bạn (${(file.size / 1024 / 1024).toFixed(1)}MB) vượt quá giới hạn cho phép!\n\nGiới hạn tối đa: 2MB\nVui lòng chọn ảnh nhỏ hơn.`,
-            'error'
-        );
+        showAlert('📏 Kích Thước Quá Lớn', `File ảnh của bạn (${(file.size / 1024 / 1024).toFixed(1)}MB) vượt quá giới hạn cho phép!\n\nGiới hạn tối đa: 2MB\nVui lòng chọn ảnh nhỏ hơn.`, 'error');
         return false;
     }
     
     return true;
 }
 
-// RESET FILE INPUT KHI KHÔNG HỢP LỆ
 function resetFileInput() {
     fileInput.value = '';
     fileDropArea.querySelector('span').textContent = 'Chọn ảnh thời trang của bạn';
@@ -338,25 +306,19 @@ function resetFileInput() {
     croppedPreviewContainer.style.display = 'none';
 }
 
-// XỬ LÝ FILE VÀ VALIDATE
 function handleFiles(files) {
     if (files.length > 0) {
         const file = files[0];
         
-        // VALIDATE NGAY KHI CHỌN FILE
         if (!validateImageFormat(file)) {
             resetFileInput();
             return;
         }
         
-        const fileName = file.name;
-        
-        // Update UI nếu file hợp lệ
-        fileDropArea.querySelector('span').textContent = fileName;
+        fileDropArea.querySelector('span').textContent = file.name;
         fileDropArea.style.borderColor = 'var(--accent)';
         fileDropArea.style.background = 'rgba(231, 185, 176, 0.1)';
         
-        // Hiển thị preview
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -364,7 +326,6 @@ function handleFiles(files) {
                 previewContainer.style.display = 'block';
                 croppedPreviewContainer.style.display = 'none';
                 
-                // Khởi tạo cropper
                 if (cropper) cropper.destroy();
                 cropper = new Cropper(previewImage, {
                     aspectRatio: NaN,
@@ -382,126 +343,16 @@ function handleFiles(files) {
     }
 }
 
-// CẢI THIỆN UPLOAD EXPERIENCE
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('fileInput');
-    const fileDropArea = document.getElementById('fileDropArea');
-    const previewContainer = document.getElementById('previewContainer');
-    const previewImage = document.getElementById('previewImage');
-    const uploadForm = document.getElementById('uploadForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const btnText = document.getElementById('btnText');
-    
-    let cropper;
-
-    // Hiển thị chất lượng ban đầu
-    updateQualityValue(document.getElementById('quality').value);
-    
-    // DRAG & DROP FUNCTIONALITY
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        fileDropArea.addEventListener(eventName, preventDefaults, false);
-    });
-    
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    ['dragenter', 'dragover'].forEach(eventName => {
-        fileDropArea.addEventListener(eventName, highlight, false);
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        fileDropArea.addEventListener(eventName, unhighlight, false);
-    });
-    
-    function highlight() {
-        fileDropArea.classList.add('dragover');
-    }
-    
-    function unhighlight() {
-        fileDropArea.classList.remove('dragover');
-    }
-    
-    // Handle dropped files
-    fileDropArea.addEventListener('drop', handleDrop, false);
-    
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        fileInput.files = files;
-        handleFiles(files);
-    }
-    
-    // Handle file selection
-    fileInput.addEventListener('change', function() {
-        handleFiles(this.files);
-    });
-    
-    // Form submission
-    uploadForm.addEventListener('submit', function() {
-        btnText.textContent = 'Đang tải lên...';
-        submitBtn.disabled = true;
-        submitBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
-    });
-});
-
-// Update quality value display
-function updateQualityValue(value) {
-    const qualityValue = document.getElementById('qualityValue');
-    qualityValue.textContent = value + '%';
-    
-    // Change color based on value
-    if (value >= 90) {
-        qualityValue.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
-    } else if (value >= 70) {
-        qualityValue.style.background = 'linear-gradient(135deg, #FF9800, #F57C00)';
-    } else {
-        qualityValue.style.background = 'var(--gradient)';
-    }
-}
-
-// Smooth scroll for navigation
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    });
-});
-
-// CROP FUNCTIONALITY - GIỮ NGUYÊN
-let cropper;
-const imageInput = document.getElementById('fileInput');
-const previewContainer = document.getElementById('previewContainer');
-const previewImage = document.getElementById('previewImage');
-const cropButton = document.getElementById('cropButton');
-const cancelButton = document.getElementById('cancelButton');
-const croppedPreviewContainer = document.getElementById('croppedPreviewContainer');
-const croppedPreview = document.getElementById('croppedPreview');
-
-// Khi bấm "Cắt ảnh"
+// ===== CROP FUNCTIONALITY =====
 cropButton.addEventListener('click', (e) => {
     e.preventDefault();
     if (!cropper) return;
 
-    // Không giới hạn kích thước crop (dựa theo vùng người dùng chọn)
-    const canvas = cropper.getCroppedCanvas({
-        maxWidth: 1000,
-        maxHeight: 1000,
-    });
-
-    // Hiển thị ảnh sau khi cắt
+    const canvas = cropper.getCroppedCanvas({ maxWidth: 1000, maxHeight: 1000 });
     croppedPreview.src = canvas.toDataURL("image/jpeg", 0.9);
     croppedPreviewContainer.style.display = 'block';
-    previewContainer.style.display = 'none'; // Ẩn vùng preview ban đầu
+    previewContainer.style.display = 'none';
 
-    // Lưu dữ liệu crop (để gửi PHP xử lý)
     const cropData = cropper.getData();
     document.querySelector('form').insertAdjacentHTML('beforeend', `
         <input type="hidden" name="crop_x" value="${Math.round(cropData.x)}">
@@ -511,6 +362,69 @@ cropButton.addEventListener('click', (e) => {
     `);
 });
 
-</script>
+// ===== UTILITY FUNCTIONS =====
+function updateQualityValue(value) {
+    const qualityValue = document.getElementById('qualityValue');
+    qualityValue.textContent = value + '%';
+    
+    if (value >= 90) {
+        qualityValue.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
+    } else if (value >= 70) {
+        qualityValue.style.background = 'linear-gradient(135deg, #FF9800, #F57C00)';
+    } else {
+        qualityValue.style.background = 'var(--gradient)';
+    }
+}
+
+// ===== EVENT LISTENERS =====
+document.addEventListener('DOMContentLoaded', function() {
+    updateQualityValue(document.getElementById('quality').value);
+    
+    // Drag & Drop Events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, () => fileDropArea.classList.add('dragover'), false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileDropArea.addEventListener(eventName, () => fileDropArea.classList.remove('dragover'), false);
+    });
+    
+    fileDropArea.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        fileInput.files = files;
+        handleFiles(files);
+    });
+    
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+    
+    uploadForm.addEventListener('submit', function() {
+        btnText.textContent = 'Đang tải lên...';
+        submitBtn.disabled = true;
+        submitBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+    });
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// ===== SMOOTH SCROLL =====
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
+    </script>
 </body>
 </html>
