@@ -99,7 +99,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
             <nav class="nav-links">
                 <a href="#gallery">Thư Viện</a>
                 <a href="#upload">Tải Lên</a>
-                <a href="#trending">Xu Hướng</a>
             </nav>
         </div>
     </header>
