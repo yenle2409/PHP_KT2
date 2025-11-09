@@ -3,61 +3,100 @@ include 'connect.php';
 include 'compress.php';
 include 'resize.php';
 
-if (isset($_POST['upload'])) {
-    $caption = isset($_POST['caption']) ? trim($_POST['caption']) : '';
-    $category = isset($_POST['category']) ? trim($_POST['category']) : 'Street';
-    $quality = isset($_POST['quality']) ? (int)$_POST['quality'] : 80;
-    $file = $_FILES['image'];
+session_start();
 
-    // Kiểm tra lỗi
-    if ($file['error'] !== 0) {
-        die("❌ Lỗi upload file!");
+// Xử lý upload
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
+    $file = $_FILES["image"];
+    $desc = $_POST["desc"] ?? "";
+    $category = $_POST["category"] ?? "Khác";
+    $quality = (int)($_POST["quality"] ?? 80);
+
+    $allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    $crop = [
+        'x' => (int)($_POST['crop_x'] ?? 0),
+        'y' => (int)($_POST['crop_y'] ?? 0),
+        'w' => (int)($_POST['crop_w'] ?? 0),
+        'h' => (int)($_POST['crop_h'] ?? 0)
+    ];
+
+    // Validate file
+    if ($file["error"] !== UPLOAD_ERR_OK) {
+        $_SESSION['upload_message'] = "⚠️ Lỗi upload file!";
+        $_SESSION['message_type'] = 'error';
+    } elseif ($file["size"] > 2 * 1024 * 1024) {
+        $_SESSION['upload_message'] = "⚠️ Kích thước ảnh vượt quá 2MB!";
+        $_SESSION['message_type'] = 'error';
+    } elseif (!in_array($file["type"], $allowedTypes)) {
+        $_SESSION['upload_message'] = "⚠️ Chỉ chấp nhận định dạng JPG, PNG hoặc GIF!";
+        $_SESSION['message_type'] = 'error';
+    } else {
+        // Kiểm tra GD extension
+        $hasGD = extension_loaded('gd');
+        
+        $fileName = uniqid() . "_" . basename($file["name"]);
+        $targetPath = "uploads/" . $fileName;
+        $tempPath = $file["tmp_name"];
+
+        // Tạo thư mục uploads nếu chưa tồn tại
+        if (!is_dir("uploads")) {
+            mkdir("uploads", 0755, true);
+        }
+
+        if (!$hasGD) {
+            // Nếu không có GD, chỉ copy file
+            if (move_uploaded_file($tempPath, $targetPath)) {
+                // Lưu vào database
+                $stmt = $conn->prepare("INSERT INTO images (filename, caption, category, likes, upload_date) VALUES (?, ?, ?, 0, NOW())");
+                $stmt->bind_param('sss', $fileName, $desc, $category);
+                
+                if ($stmt->execute()) {
+                    $_SESSION['upload_message'] = "✅ Tải ảnh thành công!";
+                    $_SESSION['message_type'] = 'success';
+                } else {
+                    $_SESSION['upload_message'] = "⚠️ Lỗi lưu thông tin ảnh!";
+                    $_SESSION['message_type'] = 'error';
+                    // Xóa file đã upload nếu lỗi database
+                    if (file_exists($targetPath)) {
+                        unlink($targetPath);
+                    }
+                }
+            } else {
+                $_SESSION['upload_message'] = "⚠️ Lỗi di chuyển file!";
+                $_SESSION['message_type'] = 'error';
+            }
+        } else {
+            // Có GD, xử lý resize và compress
+            if (resizeImage($tempPath, $targetPath, 800, 800, $crop)) {
+                compressImage($targetPath, $targetPath, $quality);
+                
+                // Lưu vào database
+                $stmt = $conn->prepare("INSERT INTO images (filename, caption, category, likes, upload_date) VALUES (?, ?, ?, 0, NOW())");
+                $stmt->bind_param('sss', $fileName, $desc, $category);
+                
+                if ($stmt->execute()) {
+                    $_SESSION['upload_message'] = "✅ Tải ảnh thành công!";
+                    $_SESSION['message_type'] = 'success';
+                } else {
+                    $_SESSION['upload_message'] = "⚠️ Lỗi lưu thông tin ảnh!";
+                    $_SESSION['message_type'] = 'error';
+                    // Xóa file đã upload nếu lỗi database
+                    if (file_exists($targetPath)) {
+                        unlink($targetPath);
+                    }
+                }
+            } else {
+                $_SESSION['upload_message'] = "⚠️ Lỗi xử lý ảnh!";
+                $_SESSION['message_type'] = 'error';
+            }
+        }
     }
-
-    // Giới hạn dung lượng
-    if ($file['size'] > 2 * 1024 * 1024) {
-        die("⚠️ File quá lớn! Giới hạn 2MB.");
-    }
-
-    // Chỉ cho phép định dạng ảnh
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowed = ['jpg','jpeg','png','gif'];
-    if (!in_array($ext, $allowed)) {
-        die("⚠️ Chỉ chấp nhận định dạng JPG, PNG hoặc GIF.");
-    }
-
-    // Tạo tên file mới tránh trùng
-    $newName = uniqid('fashion_') . '.' . $ext;
-    $targetPath = "uploads/" . $newName;
-
-    // Tạo thư mục nếu chưa có
-    if (!is_dir("uploads")) {
-        mkdir("uploads", 0777, true);
-    }
-
-    // Upload file
-    if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-        die('❌ Không thể lưu file tạm.');
-    }
-
-    // Nén & resize ảnh
-    compressImage($targetPath, $targetPath, $quality);
-    resizeImage($targetPath, $targetPath, 600, 600);
-
-    // Lưu vào CSDL
-    $stmt = $conn->prepare("INSERT INTO images (filename, caption, category, likes, upload_date) VALUES (?, ?, ?, 0, NOW())");
-    $stmt->bind_param('sss', $newName, $caption, $category);
-    $stmt->execute();
-
-    // ✅ Hiển thị ảnh sau khi tải xong
-    echo "<h3 style='color:green;'>✅ Ảnh đã được tải lên thành công!</h3>";
-    echo "<p><strong>Chú thích:</strong> " . htmlspecialchars($caption) . "</p>";
-    echo "<p><strong>Phân loại:</strong> " . htmlspecialchars($category) . "</p>";
-    echo "<img src='uploads/$newName' alt='Ảnh vừa tải' style='max-width:400px; border:1px solid #ccc; border-radius:8px; padding:5px;'>";
-    echo "<br><br><a href='index.php' style='color:blue; text-decoration:none;'>⬅ Quay lại trang chính</a>";
+    
+    // Chuyển hướng về index.php
+    header('Location: index.php');
     exit;
-
 } else {
+    // Nếu không phải POST request, chuyển hướng về trang chủ
     header('Location: index.php');
     exit;
 }
