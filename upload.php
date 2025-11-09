@@ -1,5 +1,5 @@
 <?php
-include 'db.php';
+include 'connect.php';
 include 'compress.php';
 include 'resize.php';
 
