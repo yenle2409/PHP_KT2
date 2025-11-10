@@ -67,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
             }
         } else {
             // Có GD, xử lý resize và compress
-            if (resizeImage($tempPath, $targetPath, 800, 800, $crop)) {
+            if (resizeImage($tempPath, $targetPath, $crop)) {
                 compressImage($targetPath, $targetPath, $quality);
                 
                 // Lưu vào database

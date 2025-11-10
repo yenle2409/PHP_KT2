@@ -16,10 +16,23 @@ if (isset($_SESSION['upload_message'])) {
 }
 
 // Lấy danh sách ảnh từ database
-$result = $conn->query("SELECT * FROM images ORDER BY upload_date DESC");
-if ($result) {
-    $images = $result->fetch_all(MYSQLI_ASSOC);
-}
+// ======== PHÂN TRANG ========
+$limit = 6; // Số ảnh mỗi trang
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($page - 1) * $limit;
+
+// Đếm tổng ảnh
+$totalResult = $conn->query("SELECT COUNT(*) AS total FROM images");
+$totalImages = $totalResult->fetch_assoc()['total'];
+$totalPages = ceil($totalImages / $limit);
+
+// Lấy ảnh cho trang hiện tại
+$stmt = $conn->prepare("SELECT * FROM images ORDER BY upload_date DESC LIMIT ?, ?");
+$stmt->bind_param("ii", $offset, $limit);
+$stmt->execute();
+$result = $stmt->get_result();
+$images = $result->fetch_all(MYSQLI_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
@@ -157,6 +170,58 @@ if ($result) {
             </div>
         <?php endif; ?>
     </main>
+    <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=<?= $page - 1 ?>" class="page-link">« Trước</a>
+            <?php endif; ?>
+
+            <?php
+            $range = 2; // số trang hiển thị hai bên
+            for ($i = max(1, $page - $range); $i <= min($totalPages, $page + $range); $i++):
+            ?>
+                <a href="?page=<?= $i ?>" class="page-link <?= $i == $page ? 'active' : '' ?>">
+                    <?= $i ?>
+                </a>
+            <?php endfor; ?>
+
+            <?php if ($page < $totalPages): ?>
+                <a href="?page=<?= $page + 1 ?>" class="page-link">Tiếp »</a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- ================== POPUP XEM ẢNH FULL ================== -->
+    <div id="viewerOverlay" class="viewer-overlay">
+        <span class="viewer-close">&times;</span>
+        <img class="viewer-img" id="viewerImg">
+        <div id="viewerCaption"></div>
+    </div>
+    <script>
+        const overlayEl = document.getElementById("viewerOverlay");
+        const overlayImg = document.getElementById("viewerImg");
+        const overlayCaption = document.getElementById("viewerCaption");
+        const closeBtnEl = document.querySelector(".viewer-close");
+
+        // Gán sự kiện click cho từng ảnh
+        document.querySelectorAll(".gallery-image").forEach(pic => {
+        pic.addEventListener("click", () => {
+            overlayEl.style.display = "flex";
+            overlayImg.src = pic.src;
+            overlayCaption.textContent = pic.alt || "";
+        });
+        });
+
+        // Đóng popup
+        closeBtnEl.addEventListener("click", () => {
+        overlayEl.style.display = "none";
+        });
+
+        // Đóng khi click ngoài ảnh
+        overlayEl.addEventListener("click", (e) => {
+        if (e.target === overlayEl) overlayEl.style.display = "none";
+        });
+    </script>
 
     <!-- ===== FOOTER SECTION ===== -->
     <footer class="site-footer">
@@ -298,13 +363,14 @@ function handleFiles(files) {
     }
 }
 
-// ===== CROP FUNCTIONALITY =====
+// ===== CROP ẢNH =====
 cropButton.addEventListener('click', (e) => {
     e.preventDefault();
     if (!cropper) return;
 
-    const canvas = cropper.getCroppedCanvas({ maxWidth: 1000, maxHeight: 1000 });
-    croppedPreview.src = canvas.toDataURL("image/jpeg", 0.9);
+    const canvas = cropper.getCroppedCanvas({ maxWidth: 1000, maxHeight: 1000,fillColor: 'transparent'});
+    croppedPreview.src = canvas.toDataURL("image/png");
+
     croppedPreviewContainer.style.display = 'block';
     previewContainer.style.display = 'none';
 

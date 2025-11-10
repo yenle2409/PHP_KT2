@@ -1,5 +1,5 @@
 <?php
-function resizeImage($source, $destination, $width, $height, $crop = null) {
+function resizeImage($source, $destination, $crop = null) {
     if (!extension_loaded('gd')) {
         return copy($source, $destination);
     }
@@ -12,94 +12,47 @@ function resizeImage($source, $destination, $width, $height, $crop = null) {
         case 'image/jpeg':
         case 'image/jpg':
             $src = imagecreatefromjpeg($source);
-            $type = 'jpeg';
             break;
         case 'image/png':
             $src = imagecreatefrompng($source);
-            $type = 'png';
             break;
         case 'image/gif':
             $src = imagecreatefromgif($source);
-            $type = 'gif';
             break;
         default:
-            // Nếu không hỗ trợ, copy trực tiếp
             return copy($source, $destination);
     }
-
-    if (!$src) return false;
 
     $origW = imagesx($src);
     $origH = imagesy($src);
 
-    // Nếu crop được gửi, chuẩn hóa & clamp giá trị
+    // Crop vùng cần lấy
     if ($crop && isset($crop['x'], $crop['y'], $crop['w'], $crop['h'])) {
         $srcX = max(0, (int)$crop['x']);
         $srcY = max(0, (int)$crop['y']);
-        $srcW = max(0, (int)$crop['w']);
-        $srcH = max(0, (int)$crop['h']);
-
-        // Nếu giá trị vượt ra ngoài ảnh gốc -> clamp
-        if ($srcX + $srcW > $origW) $srcW = $origW - $srcX;
-        if ($srcY + $srcH > $origH) $srcH = $origH - $srcY;
-
-        // Nếu w/h vẫn không hợp lệ, fallback về crop trung tâm
-        if ($srcW <= 0 || $srcH <= 0) {
-            $srcSize = min($origW, $origH);
-            $srcX = (int)(($origW - $srcSize) / 2);
-            $srcY = (int)(($origH - $srcSize) / 2);
-            $srcW = $srcH = $srcSize;
-        }
+        $srcW = max(1, (int)$crop['w']);
+        $srcH = max(1, (int)$crop['h']);
     } else {
-        // Default: crop vuông trung tâm
-        $srcSize = min($origW, $origH);
-        $srcX = (int)(($origW - $srcSize) / 2);
-        $srcY = (int)(($origH - $srcSize) / 2);
-        $srcW = $srcH = $srcSize;
+        $srcX = 0; $srcY = 0;
+        $srcW = $origW; $srcH = $origH;
     }
 
-    $dst = imagecreatetruecolor((int)$width, (int)$height);
+    $dst = imagecreatetruecolor($srcW, $srcH);
 
-    // Nếu nguồn là PNG/GIF: preserve transparency
-    if ($type === 'png' || $type === 'gif') {
-        // For PNG: preserve alpha
-        imagealphablending($dst, false);
-        imagesavealpha($dst, true);
-        $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
-        imagefilledrectangle($dst, 0, 0, $width, $height, $transparent);
-    } else {
-        // For JPEG target: fill white background to avoid black from transparent source
-        $white = imagecolorallocate($dst, 255, 255, 255);
-        imagefilledrectangle($dst, 0, 0, $width, $height, $white);
-    }
+    // Fill nền trắng cho tất cả ảnh
+    $white = imagecolorallocate($dst, 255, 255, 255);
+    imagefilledrectangle($dst, 0, 0, $srcW, $srcH, $white);
 
-    // Do the resampling
-    $resampled = imagecopyresampled(
-        $dst, $src,
-        0, 0,            // dst x,y
-        $srcX, $srcY,    // src x,y
-        $width, $height, // dst w,h
-        $srcW, $srcH     // src w,h
-    );
+    // Copy resample
+    imagecopyresampled($dst, $src, 0, 0, $srcX, $srcY, $srcW, $srcH, $srcW, $srcH);
 
-    if (!$resampled) {
-        imagedestroy($src);
-        imagedestroy($dst);
-        return false;
-    }
-
-    // Lưu theo định dạng gốc (jpeg/png/gif)
+    // Lưu file
     $saved = false;
-    switch ($type) {
-        case 'jpeg':
-            $saved = imagejpeg($dst, $destination);
-            break;
-        case 'png':
-            $saved = imagepng($dst, $destination);
-            break;
-        case 'gif':
-            $saved = imagegif($dst, $destination);
-            break;
+    switch ($mime) {
+        case 'image/jpeg':
+        case 'image/jpg': $saved = imagejpeg($dst, $destination, 90); break;
+        case 'image/png':  $saved = imagepng($dst, $destination); break;
+        case 'image/gif':  $saved = imagegif($dst, $destination); break;
     }
 
     imagedestroy($src);
