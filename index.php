@@ -1,82 +1,24 @@
 <?php
+session_start();
 include 'connect.php';
 
 $uploadMessage = "";
+$messageType = "";
 $images = [];
+
+// Hiển thị thông báo từ session (nếu có)
+if (isset($_SESSION['upload_message'])) {
+    $uploadMessage = $_SESSION['upload_message'];
+    $messageType = $_SESSION['message_type'] ?? '';
+    // Xóa session message sau khi đã lấy
+    unset($_SESSION['upload_message']);
+    unset($_SESSION['message_type']);
+}
 
 // Lấy danh sách ảnh từ database
 $result = $conn->query("SELECT * FROM images ORDER BY upload_date DESC");
 if ($result) {
     $images = $result->fetch_all(MYSQLI_ASSOC);
-}
-
-// Xử lý upload
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
-    $file = $_FILES["image"];
-    $desc = $_POST["desc"] ?? "";
-    $category = $_POST["category"] ?? "Khác";
-    $quality = (int)($_POST["quality"] ?? 80);
-
-    $allowedTypes = ["image/jpeg", "image/png", "image/gif"];
- 
-    if ($file["error"] !== UPLOAD_ERR_OK) {
-        $uploadMessage = "⚠️ Lỗi upload file!";
-    } elseif ($file["size"] > 2 * 1024 * 1024) {
-        $uploadMessage = "⚠️ Kích thước ảnh vượt quá 2MB!";
-    } elseif (!in_array($file["type"], $allowedTypes)) {
-        $uploadMessage = "⚠️ Chỉ chấp nhận định dạng JPG, PNG hoặc GIF!";
-    } else {
-        // Kiểm tra GD extension
-        $hasGD = extension_loaded('gd');
-        
-        $fileName = uniqid() . "_" . basename($file["name"]);
-        $targetPath = "uploads/" . $fileName;
-        $tempPath = $file["tmp_name"];
-
-        if (!$hasGD) {
-            // Nếu không có GD, chỉ copy file
-            if (move_uploaded_file($tempPath, $targetPath)) {
-                // Lưu vào database
-                $stmt = $conn->prepare("INSERT INTO images (filename, caption, category, likes, upload_date) VALUES (?, ?, ?, 0, NOW())");
-                $stmt->bind_param('sss', $fileName, $desc, $category);
-                
-                if ($stmt->execute()) {
-                    $uploadMessage = "✅ Tải ảnh thành công!";
-                    echo "<script>setTimeout(() => window.location.href = 'index.php', 1000);</script>";
-                } else {
-                    $uploadMessage = "⚠️ Lỗi lưu thông tin ảnh!";
-                }
-            } else {
-                $uploadMessage = "⚠️ Lỗi di chuyển file!";
-            }
-        } else {
-            // Có GD, xử lý resize và compress
-            include 'compress.php';
-            include 'resize.php';
-            $crop = [
-                'x' => (int)($_POST['crop_x'] ?? 0),
-                'y' => (int)($_POST['crop_y'] ?? 0),
-                'w' => (int)($_POST['crop_w'] ?? 0),
-                'h' => (int)($_POST['crop_h'] ?? 0)
-            ];
-            if (resizeImage($tempPath, $targetPath, 800, 800, $crop)) {
-                compressImage($targetPath, $targetPath, $quality);
-                
-                // Lưu vào database
-                $stmt = $conn->prepare("INSERT INTO images (filename, caption, category, likes, upload_date) VALUES (?, ?, ?, 0, NOW())");
-                $stmt->bind_param('sss', $fileName, $desc, $category);
-                
-                if ($stmt->execute()) {
-                    $uploadMessage = "✅ Tải ảnh thành công!";
-                    echo "<script>setTimeout(() => window.location.href = 'index.php', 1000);</script>";
-                } else {
-                    $uploadMessage = "⚠️ Lỗi lưu thông tin ảnh!";
-                }
-            } else {
-                $uploadMessage = "⚠️ Lỗi xử lý ảnh!";
-            }
-        }
-    }
 }
 ?>
 
@@ -112,14 +54,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     <!-- ===== UPLOAD SECTION ===== -->
     <section id="upload" class="upload-section">
         <h2><i class="fas fa-cloud-upload-alt"></i> Tải Lên Phong Cách Của Bạn</h2>
-        
-        <?php if ($uploadMessage): ?>
-            <div class="message <?= strpos($uploadMessage, '✅') !== false ? 'success' : 'error' ?>">
-                <?= htmlspecialchars($uploadMessage) ?>
-            </div>
-        <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+        <form method="POST" action="upload.php" enctype="multipart/form-data" class="upload-form" id="uploadForm">
             <!-- FILE UPLOAD AREA -->
             <div class="file-input-wrapper" id="fileDropArea">
                 <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif" required id="fileInput">
@@ -234,7 +170,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
     <div class="alert-modal" id="alertModal">
         <div class="modal-content">
             <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
-            <div class="modal-icon error" id="modalIcon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="modal-icon" id="modalIcon"><i class="fas fa-exclamation-triangle"></i></div>
             <h3 class="modal-title" id="modalTitle">Thông báo</h3>
             <p class="modal-message" id="modalMessage">Nội dung thông báo</p>
             <button class="modal-button" id="modalButton">OK</button>
@@ -263,18 +199,38 @@ function showAlert(title, message, type = 'error') {
     const modalMessage = document.getElementById('modalMessage');
     const modalButton = document.getElementById('modalButton');
     
-    modalIcon.innerHTML = type === 'error' ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-check-circle"></i>';
-    modalIcon.className = `modal-icon ${type}`;
-    modalTitle.textContent = title;
+    // Set icon and style based on type
+    if (type === 'error') {
+        modalIcon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        modalIcon.className = 'modal-icon error';
+        modalTitle.textContent = title;
+    } else if (type === 'success') {
+        modalIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        modalIcon.className = 'modal-icon success';
+        modalTitle.textContent = title;
+    }
+    
     modalMessage.textContent = message;
     modal.classList.add('show');
     
-    const closeModal = () => modal.classList.remove('show');
+    const closeModal = () => {
+        modal.classList.remove('show');
+        // If it's a success message, reload the page to show the new image
+        if (type === 'success') {
+            setTimeout(() => {
+                window.location.href = 'index.php';
+            }, 300);
+        }
+    };
+    
     modalButton.onclick = closeModal;
     document.getElementById('modalClose').onclick = closeModal;
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
     document.addEventListener('keydown', function closeOnEscape(e) {
-        if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', closeOnEscape); }
+        if (e.key === 'Escape') { 
+            closeModal(); 
+            document.removeEventListener('keydown', closeOnEscape); 
+        }
     });
 }
 
@@ -284,7 +240,7 @@ function validateImageFormat(file) {
     const maxSize = 2 * 1024 * 1024;
     
     if (!allowedTypes.includes(file.type)) {
-        showAlert('❌ Định Dạng Không Hợp Lệ', 'Chỉ chấp nhận các định dạng ảnh:\n• JPG/JPEG\n• PNG\n• GIF\n\nVui lòng chọn file ảnh khác!', 'error');
+        showAlert('❌ Định Dạng Không Hợp Lệ', 'Chỉ chấp nhận các định dạng ảnh:\n JPG/JPEG, PNG, GIF. \n Vui lòng chọn file ảnh khác!', 'error');
         return false;
     }
     
@@ -378,6 +334,13 @@ function updateQualityValue(value) {
 // ===== EVENT LISTENERS =====
 document.addEventListener('DOMContentLoaded', function() {
     updateQualityValue(document.getElementById('quality').value);
+    
+    // Check if there's a success message to show
+    <?php if ($uploadMessage && $messageType === 'success'): ?>
+        setTimeout(() => {
+            showAlert('✅ Thành Công', '<?= addslashes($uploadMessage) ?>', 'success');
+        }, 500);
+    <?php endif; ?>
     
     // Drag & Drop Events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
