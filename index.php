@@ -2,6 +2,9 @@
 session_start();
 include 'connect.php';
 
+// ===== LẤY DANH SÁCH ẢNH ĐÃ LIKE TỪ SESSION =====
+$userLikedImages = $_SESSION['liked_images'] ?? [];
+
 $uploadMessage = "";
 $messageType = "";
 $images = [];
@@ -47,7 +50,6 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 </head>
 <body>
-    <!-- ===== HEADER SECTION ===== -->
     <header class="site-header">
         <div class="header-content">
             <div class="logo">FashionGallery</div>
@@ -58,18 +60,15 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
         </div>
     </header>
 
-    <!-- ===== HERO SECTION ===== -->
     <section class="hero">
         <h1>Thể Hiện Phong Cách Của Bạn</h1>
         <p>Chia sẻ những khoảnh khắc thời trang của bạn với cộng đồng. Phong cách đường phố, lookbook, cảm hứng phối đồ và nhiều hơn nữa.</p>
     </section>
 
-    <!-- ===== UPLOAD SECTION ===== -->
     <section id="upload" class="upload-section">
         <h2><i class="fas fa-cloud-upload-alt"></i> Tải Lên Phong Cách Của Bạn</h2>
 
         <form method="POST" action="upload.php" enctype="multipart/form-data" class="upload-form" id="uploadForm">
-            <!-- FILE UPLOAD AREA -->
             <div class="file-input-wrapper" id="fileDropArea">
                 <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif" required id="fileInput">
                 <label for="fileInput" class="file-input-label">
@@ -79,7 +78,6 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
                 </label>
             </div>
 
-            <!-- IMAGE PREVIEW & CROP AREA -->
             <div id="previewContainer" class="text-center mt-4" style="display: none;">
                 <h5 class="mb-3">Xem trước ảnh</h5>
                 <div class="crop-container mx-auto border rounded shadow-sm p-3 bg-light" style="max-width: 420px;border:2px solid black;">
@@ -91,13 +89,11 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
                 </div>
             </div>
 
-            <!-- CROPPED PREVIEW -->
             <div id="croppedPreviewContainer" class="container text-center mt-4" style="display: none;">
                 <h5 class="mb-3">Xem trước ảnh</h5>
                 <img id="croppedPreview" style="max-width: 300px; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.15);">
             </div>
 
-            <!-- FORM FIELDS -->
             <div class="form-group">
                 <label for="desc"><i class="fas fa-pen"></i> Mô Tả Phong Cách</label>
                 <input type="text" name="desc" id="desc" 
@@ -133,6 +129,11 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
                     <span>Chất lượng tốt</span>
                 </div>
             </div>
+            
+            <input type="hidden" name="crop_x" id="crop_x">
+            <input type="hidden" name="crop_y" id="crop_y">
+            <input type="hidden" name="crop_w" id="crop_w">
+            <input type="hidden" name="crop_h" id="crop_h">
 
             <button type="submit" class="btn-primary" id="submitBtn">
                 <i class="fas fa-upload"></i> 
@@ -141,7 +142,6 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
         </form>
     </section>
 
-    <!-- ===== GALLERY SECTION ===== -->
     <main id="gallery" class="gallery">
         <?php if (!empty($images)): ?>
             <?php foreach ($images as $image): ?>
@@ -155,10 +155,17 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
                         <div class="item-category">#<?= htmlspecialchars($image['category']) ?></div>
                         <div class="item-stats">
                             <span><i class="far fa-clock"></i> <?= date('d/m/Y', strtotime($image['upload_date'])) ?></span>
-                            <a href="like.php?id=<?= $image['id'] ?>" class="like-btn">
-                                <i class="far fa-heart"></i> <?= $image['likes'] ?>
-                            </a>
-                        </div>
+                            
+                            <?php
+                                // Kiểm tra xem user đã like ảnh này trong session chưa
+                                $isLiked = isset($userLikedImages[$image['id']]);
+                                $heartIcon = $isLiked ? 'fas fa-heart' : 'far fa-heart'; // fas = đặc, far = rỗng
+                                $likedClass = $isLiked ? 'liked' : ''; // Thêm class 'liked' nếu đã like
+                            ?>
+                            <a href="like.php?id=<?= $image['id'] ?>" 
+                               class="like-btn <?= $likedClass ?>" 
+                               data-id="<?= $image['id'] ?>"> <i class="<?= $heartIcon ?>"></i> <span><?= $image['likes'] ?></span> </a>
+                            </div>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -170,28 +177,28 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
             </div>
         <?php endif; ?>
     </main>
+    
     <?php if ($totalPages > 1): ?>
         <div class="pagination">
             <?php if ($page > 1): ?>
-                <a href="?page=<?= $page - 1 ?>" class="page-link">« Trước</a>
+                <a href="?page=<?= $page - 1 ?>#gallery" class="page-link">« Trước</a>
             <?php endif; ?>
 
             <?php
             $range = 2; // số trang hiển thị hai bên
             for ($i = max(1, $page - $range); $i <= min($totalPages, $page + $range); $i++):
             ?>
-                <a href="?page=<?= $i ?>" class="page-link <?= $i == $page ? 'active' : '' ?>">
+                <a href="?page=<?= $i ?>#gallery" class="page-link <?= $i == $page ? 'active' : '' ?>">
                     <?= $i ?>
                 </a>
             <?php endfor; ?>
 
             <?php if ($page < $totalPages): ?>
-                <a href="?page=<?= $page + 1 ?>" class="page-link">Tiếp »</a>
+                <a href="?page=<?= $page + 1 ?>#gallery" class="page-link">Tiếp »</a>
             <?php endif; ?>
         </div>
     <?php endif; ?>
 
-    <!-- ================== POPUP XEM ẢNH FULL ================== -->
     <div id="viewerOverlay" class="viewer-overlay">
         <span class="viewer-close">&times;</span>
         <img class="viewer-img" id="viewerImg">
@@ -223,7 +230,6 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
         });
     </script>
 
-    <!-- ===== FOOTER SECTION ===== -->
     <footer class="site-footer">
         <p><b>FashionGallery</b> — Nơi phong cách gặp gỡ cộng đồng</p>
         <p class="footer-heart">
@@ -231,7 +237,6 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
         </p>
     </footer>
 
-    <!-- ===== ALERT MODAL ===== -->
     <div class="alert-modal" id="alertModal">
         <div class="modal-content">
             <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
@@ -282,8 +287,9 @@ function showAlert(title, message, type = 'error') {
         modal.classList.remove('show');
         // If it's a success message, reload the page to show the new image
         if (type === 'success') {
+            // Chuyển hướng về trang 1 để xem ảnh mới nhất
             setTimeout(() => {
-                window.location.href = 'index.php';
+                window.location.href = 'index.php?page=1#gallery';
             }, 300);
         }
     };
@@ -324,6 +330,10 @@ function resetFileInput() {
     fileDropArea.style.background = 'var(--gradient-soft)';
     previewContainer.style.display = 'none';
     croppedPreviewContainer.style.display = 'none';
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
 }
 
 function handleFiles(files) {
@@ -374,13 +384,12 @@ cropButton.addEventListener('click', (e) => {
     croppedPreviewContainer.style.display = 'block';
     previewContainer.style.display = 'none';
 
+    // Lưu dữ liệu crop vào input ẩn
     const cropData = cropper.getData();
-    document.querySelector('form').insertAdjacentHTML('beforeend', `
-        <input type="hidden" name="crop_x" value="${Math.round(cropData.x)}">
-        <input type="hidden" name="crop_y" value="${Math.round(cropData.y)}">
-        <input type="hidden" name="crop_w" value="${Math.round(cropData.width)}">
-        <input type="hidden" name="crop_h" value="${Math.round(cropData.height)}">
-    `);
+    document.getElementById('crop_x').value = Math.round(cropData.x);
+    document.getElementById('crop_y').value = Math.round(cropData.y);
+    document.getElementById('crop_w').value = Math.round(cropData.width);
+    document.getElementById('crop_h').value = Math.round(cropData.height);
 });
 
 // ===== UTILITY FUNCTIONS =====
@@ -405,6 +414,10 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php if ($uploadMessage && $messageType === 'success'): ?>
         setTimeout(() => {
             showAlert('✅ Thành Công', '<?= addslashes($uploadMessage) ?>', 'success');
+        }, 500);
+    <?php elseif ($uploadMessage && $messageType === 'error'): ?>
+        setTimeout(() => {
+            showAlert('❌ Lỗi Xảy Ra', '<?= addslashes($uploadMessage) ?>', 'error');
         }, 500);
     <?php endif; ?>
     
@@ -432,10 +445,79 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     uploadForm.addEventListener('submit', function() {
+        // Cập nhật giá trị crop lần cuối trước khi submit
+        if (cropper) {
+            const cropData = cropper.getData();
+            document.getElementById('crop_x').value = Math.round(cropData.x);
+            document.getElementById('crop_y').value = Math.round(cropData.y);
+            document.getElementById('crop_w').value = Math.round(cropData.width);
+            document.getElementById('crop_h').value = Math.round(cropData.height);
+        }
+
         btnText.textContent = 'Đang tải lên...';
         submitBtn.disabled = true;
         submitBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
     });
+
+    // ===========================================
+    // ===== BẮT ĐẦU CODE SỬA LỖI LIKE AJAX =====
+    // ===========================================
+    document.querySelectorAll('.like-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault(); // <-- QUAN TRỌNG: Ngăn chặn trang reload!
+
+            const link = this;
+            const imageId = link.dataset.id;
+            const icon = link.querySelector('i');
+            const countSpan = link.querySelector('span');
+
+            // Vô hiệu hóa tạm thời để tránh click đúp
+            link.style.pointerEvents = 'none';
+
+            fetch('like.php?id=' + imageId, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Giúp xác định đây là AJAX request
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Lỗi mạng: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Cập nhật số like
+                    countSpan.textContent = data.newCount;
+
+                    // Cập nhật icon tim (đặc/rỗng)
+                    if (data.liked) {
+                        icon.className = 'fas fa-heart'; // Tim đặc
+                        link.classList.add('liked');
+                    } else {
+                        icon.className = 'far fa-heart'; // Tim rỗng
+                        link.classList.remove('liked');
+                    }
+                } else {
+                    // Hiển thị lỗi nếu có
+                    showAlert('Lỗi Like', data.message || 'Không thể like ảnh', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Lỗi khi thực hiện like:', error);
+                showAlert('Lỗi', 'Đã xảy ra lỗi. Vui lòng thử lại.', 'error');
+            })
+            .finally(() => {
+                // Kích hoạt lại nút sau khi hoàn tất
+                link.style.pointerEvents = 'auto';
+            });
+        });
+    });
+    // =========================================
+    // ===== KẾT THÚC CODE SỬA LỖI LIKE AJAX =====
+    // =========================================
+
 });
 
 function preventDefaults(e) {
