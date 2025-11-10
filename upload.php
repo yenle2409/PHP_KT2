@@ -72,10 +72,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
             
             if ($fileType === 'image/png') {
                 // Với PNG: sử dụng hàm tối ưu chuyên dụng
-                $success = resizeImage($tempPath, $targetPath, $crop);
 
                 $success = optimizePNG($tempPath, $targetPath, 800);
-                
+                resizeImage($tempPath, $targetPath, $crop);
+
             } else {
                 // Với JPEG/GIF: resize + compress
                 $success = resizeImage($tempPath, $targetPath, $crop);
