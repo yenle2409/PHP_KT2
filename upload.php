@@ -37,6 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
         $fileName = uniqid() . "_" . basename($file["name"]);
         $targetPath = "uploads/" . $fileName;
         $tempPath = $file["tmp_name"];
+        $fileType = $file["type"];
 
         // Tạo thư mục uploads nếu chưa tồn tại
         if (!is_dir("uploads")) {
@@ -66,10 +67,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["image"])) {
                 $_SESSION['message_type'] = 'error';
             }
         } else {
-            // Có GD, xử lý resize và compress
-            if (resizeImage($tempPath, $targetPath, $crop)) {
-                compressImage($targetPath, $targetPath, $quality);
+            // Có GD, xử lý tối ưu theo từng định dạng
+            $success = false;
+            
+            if ($fileType === 'image/png') {
+                // Với PNG: sử dụng hàm tối ưu chuyên dụng
+                $success = resizeImage($tempPath, $targetPath, $crop);
+
+                $success = optimizePNG($tempPath, $targetPath, 800);
                 
+            } else {
+                // Với JPEG/GIF: resize + compress
+                $success = resizeImage($tempPath, $targetPath, $crop);
+                if ($success && $fileType === 'image/jpeg') {
+                    compressImage($targetPath, $targetPath, $quality);
+                }
+            }
+            
+            if ($success) {
                 // Lưu vào database
                 $stmt = $conn->prepare("INSERT INTO images (filename, caption, category, likes, upload_date) VALUES (?, ?, ?, 0, NOW())");
                 $stmt->bind_param('sss', $fileName, $desc, $category);

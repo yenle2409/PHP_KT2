@@ -883,3 +883,6 @@ body {
   color: #fff;
   pointer-events: none;
 }
+.cropper-modal{
+  background-color: white!important;
+}

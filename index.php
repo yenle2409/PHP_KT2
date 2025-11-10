@@ -82,7 +82,7 @@ $images = $result->fetch_all(MYSQLI_ASSOC);
             <!-- IMAGE PREVIEW & CROP AREA -->
             <div id="previewContainer" class="text-center mt-4" style="display: none;">
                 <h5 class="mb-3">Xem trước ảnh</h5>
-                <div class="crop-container mx-auto border rounded shadow-sm p-3 bg-light" style="max-width: 420px;">
+                <div class="crop-container mx-auto border rounded shadow-sm p-3 bg-light" style="max-width: 420px;border:2px solid black;">
                     <img id="previewImage" style="max-width: 100%; border-radius: 10px;">
                 </div>
                 <div class="mt-4 d-flex justify-content-center gap-3">
